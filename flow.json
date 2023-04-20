@@ -1,1 +1,415 @@
-[]
+[
+    {
+        "id": "14819a33bb064a70",
+        "type": "tab",
+        "label": "energiesteckbrief_daten_komplett",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "122c2f830a22119e",
+        "type": "tab",
+        "label": "strom-_und_waermeerzeugung_ee_komplett__summe",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "e040e19543073a3b",
+        "type": "tab",
+        "label": "strom-_und_waermeerzeugung_ee_komplett__zeitreihe_co2__summe",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "25371e51224e2f20",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "database",
+        "name": "smart-village",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "https://influxdb.bad-belzig.klima-daten.de",
+        "rejectUnauthorized": false
+    },
+    {
+        "id": "71fdac00289e56d3",
+        "type": "inject",
+        "z": "14819a33bb064a70",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 100,
+        "wires": [
+            [
+                "188205c219323324"
+            ]
+        ]
+    },
+    {
+        "id": "188205c219323324",
+        "type": "http request",
+        "z": "14819a33bb064a70",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://github.com/Klima-Dashboard/data/raw/9683dfaf71df7900a3fdcf0a05dab88844734202/Energieagentur%20Brandenburg/2023-04-05_energiesteckbrief_daten_komplett__kommune_bad_belzig.csv",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "x": 270,
+        "y": 160,
+        "wires": [
+            [
+                "fa344fa0c0b26d7e"
+            ]
+        ]
+    },
+    {
+        "id": "fa344fa0c0b26d7e",
+        "type": "csv",
+        "z": "14819a33bb064a70",
+        "name": "",
+        "sep": ";",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 450,
+        "y": 160,
+        "wires": [
+            [
+                "3e18c51b45b01e5f"
+            ]
+        ]
+    },
+    {
+        "id": "8eb8c669cb178d12",
+        "type": "debug",
+        "z": "14819a33bb064a70",
+        "name": "Debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "3e18c51b45b01e5f",
+        "type": "function",
+        "z": "14819a33bb064a70",
+        "name": "Daten bearbeiten",
+        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    return {\n        fields: {\n            ...item\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel + '',\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id + '',\n            region: item.region,\n            region_id: item.region_id + ''\n        },\n        measurement: \"energiesteckbrief_daten_komplett\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 240,
+        "wires": [
+            [
+                "8eb8c669cb178d12",
+                "712316df74c28618"
+            ]
+        ]
+    },
+    {
+        "id": "712316df74c28618",
+        "type": "influxdb batch",
+        "z": "14819a33bb064a70",
+        "influxdb": "25371e51224e2f20",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "send to influxdb",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "smart-village",
+        "bucket": "Energieagentur-Brandenburg",
+        "x": 860,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "5b1f6cce98bfda8c",
+        "type": "inject",
+        "z": "122c2f830a22119e",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 100,
+        "wires": [
+            [
+                "eacbe58b2cf19618"
+            ]
+        ]
+    },
+    {
+        "id": "eacbe58b2cf19618",
+        "type": "http request",
+        "z": "122c2f830a22119e",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://github.com/Klima-Dashboard/data/raw/main/Energieagentur%20Brandenburg/2023-04-05_strom-_und_waermeerzeugung_ee_komplett__summe__kommune_bad_belzig.csv",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "x": 270,
+        "y": 160,
+        "wires": [
+            [
+                "e8a366c45ccb9422"
+            ]
+        ]
+    },
+    {
+        "id": "e8a366c45ccb9422",
+        "type": "csv",
+        "z": "122c2f830a22119e",
+        "name": "",
+        "sep": ";",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 450,
+        "y": 160,
+        "wires": [
+            [
+                "131c747c39bb0e1a"
+            ]
+        ]
+    },
+    {
+        "id": "e324509c0de38a39",
+        "type": "debug",
+        "z": "122c2f830a22119e",
+        "name": "Debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "131c747c39bb0e1a",
+        "type": "function",
+        "z": "122c2f830a22119e",
+        "name": "Daten bearbeiten",
+        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    return {\n        fields: {\n            ...item\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel + '',\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id + '',\n            region: item.region,\n            region_id: item.region_id + ''\n        },\n        measurement: \"strom-_und_waermeerzeugung_ee_komplett__summe\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 240,
+        "wires": [
+            [
+                "e324509c0de38a39",
+                "8f491c23a3c89781"
+            ]
+        ]
+    },
+    {
+        "id": "8f491c23a3c89781",
+        "type": "influxdb batch",
+        "z": "122c2f830a22119e",
+        "influxdb": "25371e51224e2f20",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "send to influxdb",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "smart-village",
+        "bucket": "Energieagentur-Brandenburg",
+        "x": 860,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "ffee017268d28fb7",
+        "type": "inject",
+        "z": "e040e19543073a3b",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 100,
+        "wires": [
+            [
+                "37c5e02dc0f430f7"
+            ]
+        ]
+    },
+    {
+        "id": "37c5e02dc0f430f7",
+        "type": "http request",
+        "z": "e040e19543073a3b",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://github.com/Klima-Dashboard/data/raw/main/Energieagentur%20Brandenburg/2023-04-05_strom-_und_waermeerzeugung_ee_komplett__zeitreihe_co2__summe__kommune_bad_belzig.csv",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "x": 270,
+        "y": 160,
+        "wires": [
+            [
+                "29f7e05690d7af22"
+            ]
+        ]
+    },
+    {
+        "id": "29f7e05690d7af22",
+        "type": "csv",
+        "z": "e040e19543073a3b",
+        "name": "",
+        "sep": ";",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 450,
+        "y": 160,
+        "wires": [
+            [
+                "914dcae7322a202b"
+            ]
+        ]
+    },
+    {
+        "id": "feaf29626b38a2e0",
+        "type": "debug",
+        "z": "e040e19543073a3b",
+        "name": "Debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "914dcae7322a202b",
+        "type": "function",
+        "z": "e040e19543073a3b",
+        "name": "Daten bearbeiten",
+        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    return {\n        fields: {\n            ...item\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel + '',\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id + '',\n            region: item.region,\n            region_id: item.region_id + ''\n        },\n        measurement: \"strom-_und_waermeerzeugung_ee_komplett__zeitreihe_co2__summe\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 240,
+        "wires": [
+            [
+                "feaf29626b38a2e0",
+                "2ae1b521bb0e5527"
+            ]
+        ]
+    },
+    {
+        "id": "2ae1b521bb0e5527",
+        "type": "influxdb batch",
+        "z": "e040e19543073a3b",
+        "influxdb": "25371e51224e2f20",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "send to influxdb",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "smart-village",
+        "bucket": "Energieagentur-Brandenburg",
+        "x": 860,
+        "y": 340,
+        "wires": []
+    }
+]
