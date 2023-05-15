@@ -1,5 +1,13 @@
 [
     {
+        "id": "3d9ff4f504e4b0f3",
+        "type": "tab",
+        "label": "Energiesteckbriefe",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
         "id": "14819a33bb064a70",
         "type": "tab",
         "label": "energiesteckbrief_daten_komplett",
@@ -30,12 +38,313 @@
         "port": "8086",
         "protocol": "http",
         "database": "database",
-        "name": "smart-village",
+        "name": "InfluxDB Bad Belzig",
         "usetls": false,
         "tls": "",
         "influxdbVersion": "2.0",
         "url": "https://influxdb.bad-belzig.klima-daten.de",
         "rejectUnauthorized": false
+    },
+    {
+        "id": "cc1fb9710fb7e874",
+        "type": "inject",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "props": [
+            {
+                "p": "timestamp",
+                "v": "",
+                "vt": "date"
+            },
+            {
+                "p": "measurement",
+                "v": "energiesteckbrief_daten_komplett",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 110,
+        "y": 100,
+        "wires": [
+            [
+                "ed8db1dfbbd37ced"
+            ]
+        ]
+    },
+    {
+        "id": "ed8db1dfbbd37ced",
+        "type": "http request",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://github.com/Klima-Dashboard/data/raw/main/Energieagentur%20Brandenburg/{{measurement}}.csv",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "x": 270,
+        "y": 160,
+        "wires": [
+            [
+                "a6eaa7f102b9d5e4",
+                "7d46349ac5867b6b"
+            ]
+        ]
+    },
+    {
+        "id": "a6eaa7f102b9d5e4",
+        "type": "csv",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "sep": ";",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 450,
+        "y": 160,
+        "wires": [
+            [
+                "2b34344833f36f96"
+            ]
+        ]
+    },
+    {
+        "id": "95c229a091356ebf",
+        "type": "debug",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 830,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "2b34344833f36f96",
+        "type": "function",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "func": "const items = msg.payload\nconst measurement = msg.measurement\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n    \n    // create an empty object to store the transformed values\n    const transformedItem = {};\n    // loop over the item's keys and values\n    for (const [key, value] of Object.entries(item)) {\n        // check if the current value is a string that represents a number\n        if (typeof value === 'string' && !isNaN(value.replace(',', '.'))) {\n            // if it is, convert it to a float and store it in the corresponding key of the new object\n            transformedItem[key] = parseFloat(value.replace(',', '.'));\n        } else {\n            // if it is not, store the value unchanged in the corresponding key of the new object\n            transformedItem[key] = value;\n        }\n    }\n\n    return {\n        fields: {\n            ...transformedItem\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel,\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id,\n            region: item.region,\n            region_id: item.region_id\n        },\n        measurement,\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 240,
+        "wires": [
+            [
+                "95c229a091356ebf",
+                "68f80590e227f13a"
+            ]
+        ]
+    },
+    {
+        "id": "68f80590e227f13a",
+        "type": "influxdb batch",
+        "z": "3d9ff4f504e4b0f3",
+        "influxdb": "25371e51224e2f20",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "send to influxdb",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "smart-village",
+        "bucket": "Energieagentur-Brandenburg",
+        "x": 860,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "9ae76f9acd6037b5",
+        "type": "http in",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "url": "/api/v1/import/energiesteckbriefe",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 500,
+        "wires": [
+            [
+                "02467b6541d67c01",
+                "362d87cfffa12a37",
+                "eb9b90915799a968"
+            ]
+        ]
+    },
+    {
+        "id": "93205f034b8e3688",
+        "type": "array-loop",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "loop über filenames",
+        "key": "filenames_index",
+        "keyType": "msg",
+        "reset": true,
+        "resetValue": "value-null",
+        "array": "filenames",
+        "arrayType": "msg",
+        "x": 290,
+        "y": 380,
+        "wires": [
+            [
+                "1db40d1f66299906"
+            ],
+            [
+                "b0cc8b4a8ac7b8f8"
+            ]
+        ]
+    },
+    {
+        "id": "02467b6541d67c01",
+        "type": "debug",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "api",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "e8ede7dcc5d7ba49",
+        "type": "debug",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "file",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "b0cc8b4a8ac7b8f8",
+        "type": "function",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "measurement",
+        "func": "msg.timestamp = new Date().valueOf()\nmsg.measurement = msg.payload\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 300,
+        "wires": [
+            [
+                "ed8db1dfbbd37ced",
+                "93205f034b8e3688",
+                "e8ede7dcc5d7ba49"
+            ]
+        ]
+    },
+    {
+        "id": "362d87cfffa12a37",
+        "type": "http response",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 520,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "eb9b90915799a968",
+        "type": "function",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "filenames",
+        "func": "msg.filenames = msg.payload.filenames;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 120,
+        "y": 440,
+        "wires": [
+            [
+                "93205f034b8e3688"
+            ]
+        ]
+    },
+    {
+        "id": "1db40d1f66299906",
+        "type": "debug",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "ende",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "7d46349ac5867b6b",
+        "type": "debug",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "d50e716b75d4272e",
+        "type": "comment",
+        "z": "3d9ff4f504e4b0f3",
+        "name": "Inject hat ein measurement manuell gesetzt",
+        "info": "",
+        "x": 190,
+        "y": 60,
+        "wires": []
     },
     {
         "id": "71fdac00289e56d3",
@@ -130,7 +439,7 @@
         "type": "function",
         "z": "14819a33bb064a70",
         "name": "",
-        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    return {\n        fields: {\n            ...item\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel + '',\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id + '',\n            region: item.region,\n            region_id: item.region_id + ''\n        },\n        measurement: \"energiesteckbrief_daten_komplett\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n    \n    // create an empty object to store the transformed values\n    const transformedItem = {};\n    // loop over the item's keys and values\n    for (const [key, value] of Object.entries(item)) {\n        // check if the current value is a string that represents a number\n        if (typeof value === 'string' && !isNaN(value.replace(',', '.'))) {\n            // if it is, convert it to a float and store it in the corresponding key of the new object\n            transformedItem[key] = parseFloat(value.replace(',', '.'));\n        } else {\n            // if it is not, store the value unchanged in the corresponding key of the new object\n            transformedItem[key] = value;\n        }\n    }\n\n    return {\n        fields: {\n            ...transformedItem\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel,\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id,\n            region: item.region,\n            region_id: item.region_id\n        },\n        measurement: \"energiesteckbrief_daten_komplett\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -255,7 +564,7 @@
         "type": "function",
         "z": "122c2f830a22119e",
         "name": "",
-        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    return {\n        fields: {\n            ...item\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel + '',\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id + '',\n            region: item.region,\n            region_id: item.region_id + ''\n        },\n        measurement: \"strom-_und_waermeerzeugung_ee_komplett__summe\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    // create an empty object to store the transformed values\n    const transformedItem = {};\n    // loop over the item's keys and values\n    for (const [key, value] of Object.entries(item)) {\n        // check if the current value is a string that represents a number\n        if (typeof value === 'string' && !isNaN(value.replace(',', '.'))) {\n            // if it is, convert it to a float and store it in the corresponding key of the new object\n            transformedItem[key] = parseFloat(value.replace(',', '.'));\n        } else {\n            // if it is not, store the value unchanged in the corresponding key of the new object\n            transformedItem[key] = value;\n        }\n    }\n\n    return {\n        fields: {\n            ...transformedItem\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel,\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id,\n            region: item.region,\n            region_id: item.region_id\n        },\n        measurement: \"strom-_und_waermeerzeugung_ee_komplett__summe\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -380,7 +689,7 @@
         "type": "function",
         "z": "e040e19543073a3b",
         "name": "",
-        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    return {\n        fields: {\n            ...item\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel + '',\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id + '',\n            region: item.region,\n            region_id: item.region_id + ''\n        },\n        measurement: \"strom-_und_waermeerzeugung_ee_komplett__zeitreihe_co2__summe\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
+        "func": "const items = msg.payload\n\nmsg.payload = items.map((item) => {\n    const date = item.jahr + \"-12-31\"\n    const timestamp = new Date(date).valueOf()\n\n    // create an empty object to store the transformed values\n    const transformedItem = {};\n    // loop over the item's keys and values\n    for (const [key, value] of Object.entries(item)) {\n        // check if the current value is a string that represents a number\n        if (typeof value === 'string' && !isNaN(value.replace(',', '.'))) {\n            // if it is, convert it to a float and store it in the corresponding key of the new object\n            transformedItem[key] = parseFloat(value.replace(',', '.'));\n        } else {\n            // if it is not, store the value unchanged in the corresponding key of the new object\n            transformedItem[key] = value;\n        }\n    }\n\n    return {\n        fields: {\n            ...transformedItem\n        },\n        tags: {\n            gemeinde: item.gemeinde,\n            typ: item.typ,\n            schluessel: item.schluessel,\n            landkreis: item.landkreis,\n            landkreis_id: item.landkreis_id,\n            region: item.region,\n            region_id: item.region_id\n        },\n        measurement: \"strom-_und_waermeerzeugung_ee_komplett__zeitreihe_co2__summe\",\n        timestamp\n    }\n})\n\nreturn msg;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
